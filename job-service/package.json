@@ -1,0 +1,24 @@
+{
+  "name": "y",
+  "version": "1.0.0",
+  "description": "This is user service for my job portal microservice project",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev" : "nodemon src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Rezwan Faruque",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^0.10.9",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.18.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
