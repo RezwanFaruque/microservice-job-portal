@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { connectQueue } = require("./rabbitmq");
 const routes = require('./routes');
+const { startUserConsumer } = require('./consumer/userConsumer');
 
 
 const app = express();
@@ -20,7 +21,19 @@ app.use(express.json());           // parse JSON
 app.use(express.urlencoded({ extended: true })); // parse form data
 
 
-connectQueue();
+// Ready for initialize rabbitmQ asyncronously
+async function init(){
+   try{
+        await connectQueue();
+        await startUserConsumer();
+   }catch(error){
+    console.log('Rabbit MQ connection failed')
+   }
+}
+
+init();
+
+
 app.use('/api/jobs', routes);
 app.use('/', (req, res) => {
     res.send('Job Service is running');

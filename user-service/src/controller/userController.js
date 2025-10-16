@@ -6,8 +6,9 @@ const { publishMessage, queueName } = require("../rabbitmq");
 
 
 const registerUser = async (req, res) => {
-    console.log(req.body);
+
     const { userName, email, password, userType } = req.body;
+    const { company } = req.body;
 
     try {
         // Check if user already exists
@@ -16,11 +17,17 @@ const registerUser = async (req, res) => {
             return res.status(400).send({ message: 'User already exists' });
         }
         // Create new user
+        let newUser;
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = await user.create({ userName, email, password: hashedPassword, userType });
+        if(userType === 'job_seeker'){ 
+             newUser = await user.create({ userName, email, password: hashedPassword, userType });
+        }else{
 
-        await publishMessage(queueName, { event: 'USER_REGISTERED', data: { userId: newUser._id, email: newUser.email } });
-        res.status(201).send({ message: 'User registered successfully', userId: newUser._id });
+             newUser = await user.create({ userName, email, password: hashedPassword, userType, company: company });
+        }
+        
+        await publishMessage(queueName, { event: 'USER_REGISTERED', data: newUser });
+        res.status(201).send({ message: 'User registered successfully', data: newUser });
     } catch (error) {
         console.error('Error registering user:', error);
         res.status(500).send({ message: 'Internal server error' });

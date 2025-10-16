@@ -26,4 +26,8 @@ async function publishMessage(queue,message) {
   }
 }
 
-module.exports = { connectQueue, publishMessage, queueName };
+function getChannel() {
+  return channel;
+}
+
+module.exports = { connectQueue, publishMessage, getChannel ,queueName };

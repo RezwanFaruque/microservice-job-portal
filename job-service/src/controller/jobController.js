@@ -5,6 +5,7 @@ const router = express.Router();
 const createJob = async (req, res) => {
 
     const { title , description , location , salaryRange , jobType , postedBy} = req.body;
+    // create eventdrivent architecture here 
 
 
     // Logic to create a job
