@@ -11,18 +11,15 @@ async function startUserConsumer (){
 
     // clear old message
     await channel.purgeQueue(queueName);
-    channel.consume(queueName , async(message) => {
-
-        console.log('Job service waiting for message que from' + queueName);
-        
+    channel.consume(queueName , async(message) => { 
         if(message != null){
-            const { eventName , data} = JSON.parse(message.content.toString());
-            if(eventName != undefined){
+            const { event , data} = JSON.parse(message.content.toString());
+            if(event != undefined){
                 try {
 
-                    switch (eventName) {
+                    switch (event) {
                         case 'USER_REGISTERED':
-                            await userChacheSync(data);
+                            await userCacheSync(data);
                             break;
                     
                         default:
@@ -36,28 +33,32 @@ async function startUserConsumer (){
             }
 
         }
-
-        
-
     })
-    
-    
 
 }
 
 
-async function userChacheSync(data){
+async function userCacheSync(data) {
+  try {
+    const { _id, userName, email, userType, company, createdAt } = data;
 
-    const { id, userName , email , password , userType , company} = data;
+    const updatedUser = await UserCache.findOneAndUpdate(
+      { userId: _id },
+      {
+        userName,
+        email,
+        userType,
+        company,
+        createdAt: createdAt || new Date(),
+      },
+      { upsert: true, new: true }
+    );
+    return updatedUser;
 
-    console.log('testing');
-    UserCache.findOneAndUpdate(
-        {userId : id},
-        {userName , email , userType , company , createdAt},
-        {upsert : true, new: true}
-    )
+  } catch (error) {
+    console.error('Error syncing user cache:', error);
+  }
 }
-
 
 module.exports = { startUserConsumer };
 
