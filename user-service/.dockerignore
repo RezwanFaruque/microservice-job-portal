@@ -1,0 +1,33 @@
+# Node dependencies
+node_modules
+npm-debug.log
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Git & Docker
+.git
+.gitignore
+.dockerignore
+
+# Build and cache folders (if any)
+dist
+build
+.cache
+coverage
+
+# Editor / IDE files
+.vscode
+.idea
+*.swp
