@@ -20,6 +20,12 @@ const createJob = async (req, res) => {
 }
 
 
+// filter job with selected value
+const getJob = async(req, res) => {
+
+}
+
+
 const createCategory = async( req, res) =>{
 
    const { name , description } = req.body;
@@ -64,4 +70,4 @@ const getAllCategory= async( req, res) =>{
      }
 }
 
-module.exports = { createJob , createCategory , getAllCategory };
+module.exports = { createJob , getJob , createCategory , getAllCategory };
