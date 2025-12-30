@@ -10,6 +10,7 @@ const jobSchema = new mongoose.Schema({
     salaryRange : { type: String },
     jobType : { type: String, enum: ['full-time', 'part-time', 'contract'], required: true },
     postedBy : { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    applicationDeadline: {type: Date},
     createdAt : { type: Date, default: Date.now },
     updatedAt : { type: Date, default: Date.now }
 

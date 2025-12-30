@@ -1,16 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const JobCategory = require('../models/JobCategory');
+const Job = require('../models/Job');
 
 
 const createJob = async (req, res) => {
 
-    const { title , description , location , salaryRange , jobType , postedBy} = req.body;
+    const { title , description , vacancy, category , location , salaryRange , jobType , postedBy , applicationDeadline} = req.body;
     // create eventdrivent architecture here 
+    try {
+        const newjob =  await Job.create({title,description,vacancy,category,location,salaryRange,jobType,postedBy,applicationDeadline});
+        return res.status(201).send({ message : `Job posted successfully`}); 
+         
+    } catch (error) {
+        return res.error(error);
+    }
 
-
-    // Logic to create a job
-    res.status(201).send({ message : `Job posted by ${postedBy}` });    
     
 }
 
