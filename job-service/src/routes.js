@@ -4,7 +4,7 @@ const { createJob, getJob ,createCategory , getAllCategory } = require('./contro
 
 
 router.post('/create', createJob);
-router.get('/get-job',getJob);
+router.get('/get-jobs',getJob);
 router.post('/job-category/create',createCategory);
 router.get('/job-category/getall',getAllCategory);
 

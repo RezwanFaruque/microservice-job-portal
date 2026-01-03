@@ -22,7 +22,65 @@ const createJob = async (req, res) => {
 
 // filter job with selected value
 const getJob = async(req, res) => {
+    try{
+        const {category , title ,location , salaryRange , jobType , page = 1 , limit = 10} = req.query;
+        let datafilter = {};
 
+        if(category){
+            datafilter.category = category;
+        }
+        if(location){
+            datafilter.location = location;
+
+        }
+
+        if(salaryRange){
+            datafilter.salaryRange = salaryRange;
+        }
+
+        if(jobType){
+            datafilter.jobType = jobType;
+        }
+
+        if(title){
+            datafilter.title = {$regex: title , $options: "i"};
+        }
+
+        const pageNumber = parseInt(page);
+        const pageLimit = parseInt(limit);
+        const skip = (pageNumber - 1) * pageLimit;
+
+        const [ jobs , total ] = await Promise.all([
+            Job.find(datafilter).skip(skip).limit(pageLimit),
+            Job.countDocuments(datafilter),
+        ]);
+
+        const data = {
+            total : total,
+            jobs : jobs,
+            page : pageNumber,
+            limit : pageLimit
+        }
+
+        if(total <= 0){
+            return res.status(404).send({
+                message: 'Jobs Not found!',
+                data : data
+            });
+        }
+        
+        return res.status(200).send({
+            message: 'Jobs successfuly found!',
+            data : data
+        });
+        
+        
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
 }
 
 
