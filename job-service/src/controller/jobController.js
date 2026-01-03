@@ -83,6 +83,39 @@ const getJob = async(req, res) => {
     }
 }
 
+const getJobDetails= async(req, res) =>{
+
+    try {
+        
+        const { id } = req.params;
+        const job = await Job.findOne({_id: id});
+
+        if(job){
+            
+            return res.status(200).send({
+                status : 'success',
+                message: 'Job detaiils found!',
+                data: job
+            });
+        }else{
+             return res.status(404).send({
+                status : 'not_found',
+                message: 'Job detaiils not found!',
+                data: []
+            });
+        }
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+
+   
+
+
+}
 
 const createCategory = async( req, res) =>{
 
@@ -128,4 +161,4 @@ const getAllCategory= async( req, res) =>{
      }
 }
 
-module.exports = { createJob , getJob , createCategory , getAllCategory };
+module.exports = { createJob , getJob , getJobDetails ,createCategory , getAllCategory };
