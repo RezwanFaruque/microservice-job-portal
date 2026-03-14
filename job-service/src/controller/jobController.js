@@ -51,7 +51,7 @@ const getJob = async(req, res) => {
         const skip = (pageNumber - 1) * pageLimit;
 
         const [ jobs , total ] = await Promise.all([
-            Job.find(datafilter).skip(skip).limit(pageLimit),
+            Job.find(datafilter).populate('category').skip(skip).limit(pageLimit),
             Job.countDocuments(datafilter),
         ]);
 
