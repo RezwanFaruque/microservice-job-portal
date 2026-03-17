@@ -95,7 +95,14 @@ const getJobDetails= async(req, res) =>{
     try {
         
         const { id } = req.params;
-        const job = await Job.findOne({_id: id});
+        const job = await Job.findOne({_id: id}).populate({
+                path: 'category',
+                select: 'id name'
+            }).populate({
+                path: 'postedBy',
+                match: {userType : 'employer'},
+                select: 'userId userName email userType compay'
+            });
 
         if(job){
             
@@ -134,7 +141,10 @@ const createCategory = async( req, res) =>{
     
    } catch (error) {
 
-     return res.error(error);
+    return res.status(500).json({
+        success: false,
+        message: error.message,
+    });
    }
 
 
@@ -163,9 +173,67 @@ const getAllCategory= async( req, res) =>{
 
      } catch (error) {
         
-        return res.error(error);
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
 
      }
 }
 
-module.exports = { createJob , getJob , getJobDetails ,createCategory , getAllCategory };
+const getJobFilterInfo = async(req , res) =>{
+
+    try {
+
+        const  [ jobtypestats , jobsalarystats ] = await Promise.all([
+
+            Job.aggregate([
+                {
+                    $group : {
+                        _id : '$jobType',
+                        count: {$sum: 1}
+
+                    }
+                },
+
+                {
+                    $project:{
+                        _id : 0,
+                        jobType : '$_id',
+                        count: 1,
+                    }
+                }
+            ]),
+
+            Job.aggregate([
+                {
+                    $group : {
+                        _id: '$salaryRange',
+                        count: { $sum : 1}
+                    }
+                },
+
+                {
+                    $project:{
+                        _id: 0 , 
+                        salaryRange: '$_id',
+                        count: 1
+                    }
+                }
+            ])
+        ]);
+
+        const response = { status: 'success' , message: 'filter stats fetched successfully!' , jobType: jobtypestats , salaryrange : jobsalarystats }
+        
+        return res.status(201).send(response);
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+
+}
+
+module.exports = { createJob , getJob , getJobDetails ,createCategory , getAllCategory , getJobFilterInfo };
