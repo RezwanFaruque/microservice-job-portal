@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { createJob, getJob, getJobDetails ,createCategory , getAllCategory,getJobFilterInfo } = require('./controller/jobController');
+const upload = require('./middleware/fileUpload');
+
+const { createJob, getJob, getJobDetails ,createCategory , getAllCategory,getJobFilterInfo , applidedJobs} = require('./controller/jobController');
 
 
 router.post('/create', createJob);
@@ -9,6 +11,8 @@ router.get('/get-job-details/:id',getJobDetails);
 router.post('/job-category/create',createCategory);
 router.get('/job-category/getall',getAllCategory);
 router.get('/get-job-filter-info',getJobFilterInfo);
+router.post('/apply',upload.single('resume'),applidedJobs);
+
 
 
 module.exports = router;

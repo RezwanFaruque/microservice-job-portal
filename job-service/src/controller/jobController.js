@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
 const JobCategory = require('../models/JobCategory');
 const Job = require('../models/Job');
+const AppliedJob = require('../models/AppliedJobs');
 
 
 const createJob = async (req, res) => {
@@ -236,4 +239,36 @@ const getJobFilterInfo = async(req , res) =>{
 
 }
 
-module.exports = { createJob , getJob , getJobDetails ,createCategory , getAllCategory , getJobFilterInfo };
+const applidedJobs = async(req, res) =>{
+
+    try {
+        
+        const { job: jobId , applicants: userId , coverLetter , employer: employerId } =  req.body;
+
+
+        const appliedJob = {
+            job ,
+            applicants,
+            coverLetter,
+            employer,
+            resumeUrl: req.file.path
+        }
+
+        const apply = await AppliedJob.create(appliedJob);
+
+        res.status(200).json({
+            success: true,
+            message: 'Job applied successfully'
+        });
+        
+
+    } catch (error) {
+
+         return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+}
+
+module.exports = { createJob , getJob , getJobDetails ,createCategory , getAllCategory , getJobFilterInfo , applidedJobs };
