@@ -55,7 +55,7 @@ const userLogin = async (req, res) => {
             }
 
             const token = jwt.sign({ userId: getuser._id, email: getuser.email, userType: getuser.userType }, process.env.JWT_SECRET || 'secretkey',
-                { expiresIn: '1h' });
+                { expiresIn: '6h' });
 
             res.status(200).send({ message: 'Login successful', token , user: { userId: getuser._id, email: getuser.email, userType: getuser.userType } });
         }else{
