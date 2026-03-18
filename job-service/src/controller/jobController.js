@@ -24,6 +24,8 @@ const createJob = async (req, res) => {
 
 
 // filter job with selected value
+
+// IN FUTURE SHOULD IMPLEMENT ELASTIC SEARCH FOR TITLE SEARCH
 const getJob = async(req, res) => {
     try{
         const {category , title ,location , salaryRange , jobType , page = 1 , limit = 10} = req.query;
