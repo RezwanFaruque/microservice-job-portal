@@ -11,7 +11,7 @@ router.get('/get-job-details/:id',getJobDetails);
 router.post('/job-category/create',createCategory);
 router.get('/job-category/getall',getAllCategory);
 router.get('/get-job-filter-info',getJobFilterInfo);
-router.post('/apply',upload.single('resume'),applidedJobs);
+router.post('/apply',upload.single('resumeUrl'),applidedJobs);
 
 
 

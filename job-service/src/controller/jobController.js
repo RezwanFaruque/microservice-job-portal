@@ -244,16 +244,15 @@ const getJobFilterInfo = async(req , res) =>{
 const applidedJobs = async(req, res) =>{
 
     try {
-        
-        const { job: jobId , applicants: userId , coverLetter , employer: employerId } =  req.body;
 
+        const { job , applicants , coverLetter , employer } =  req.body;
 
         const appliedJob = {
-            job ,
+            job,
             applicants,
             coverLetter,
             employer,
-            resumeUrl: req.file.path
+            resumeUrl: req.file?.path
         }
 
         const apply = await AppliedJob.create(appliedJob);
