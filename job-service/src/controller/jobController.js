@@ -243,6 +243,7 @@ const getJobFilterInfo = async(req , res) =>{
 
 const applidedJobs = async(req, res) =>{
 
+    // from here applicants mean applicants user ID will fetch from JWT token userID
     try {
 
         const { job , applicants , coverLetter , employer } =  req.body;
