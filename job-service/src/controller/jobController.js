@@ -5,6 +5,7 @@ const path = require('path');
 const JobCategory = require('../models/JobCategory');
 const Job = require('../models/Job');
 const AppliedJob = require('../models/AppliedJobs');
+const UserCache = require('../models/UserCache');
 
 
 const createJob = async (req, res) => {
@@ -243,10 +244,14 @@ const getJobFilterInfo = async(req , res) =>{
 
 const applidedJobs = async(req, res) =>{
 
-    // from here applicants mean applicants user ID will fetch from JWT token userID
     try {
 
-        const { job , applicants , coverLetter , employer } =  req.body;
+        const { job , coverLetter , employer } =  req.body;
+
+        const userId = req.user.userId;
+        const userInfo = await UserCache.findOne({userId : userId});
+        const applicants = userInfo._id;
+
 
         const appliedJob = {
             job,
@@ -266,7 +271,14 @@ const applidedJobs = async(req, res) =>{
 
     } catch (error) {
 
-         return res.status(500).json({
+        if (error.code === 11000) {
+            return res.status(409).json({
+                success: false,
+                message: 'You have already applied for this job',
+            });
+        }
+
+        return res.status(500).json({
             success: false,
             message: error.message,
         });
