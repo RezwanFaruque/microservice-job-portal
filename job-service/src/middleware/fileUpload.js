@@ -61,6 +61,7 @@ const saveToDisk = (req, res, next) => {
         }
 
         req.file.path = filePath;
+        req.file.relativePath = path.join('uploads', 'resumes', uniqueName).replace(/\\/g, '/');
         next();
     });
 };

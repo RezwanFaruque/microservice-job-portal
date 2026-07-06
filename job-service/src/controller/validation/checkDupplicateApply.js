@@ -1,24 +1,18 @@
 const AppliedJob = require('../../models/AppliedJobs');
-const UserCache  = require('../../models/UserCache');
 
 const checkDuplicateApplication = async (req, res, next) => {
     try {
         const { job } = req.body;
-        const userId  = req.user.userId;
+        const userId = req.user.userId;
 
-        const userInfo = await UserCache.findOne({ userId });
-
-        if (!userInfo) {
-            return res.status(404).json({
+        if (!job) {
+            return res.status(400).json({
                 success: false,
-                message: 'User not found',
+                message: 'Job is required',
             });
         }
 
-        const alreadyApplied = await AppliedJob.findOne({
-            job,
-            applicants: userInfo._id,
-        });
+        const alreadyApplied = await AppliedJob.findOne({ job, userId });
 
         if (alreadyApplied) {
             return res.status(409).json({
@@ -27,7 +21,6 @@ const checkDuplicateApplication = async (req, res, next) => {
             });
         }
 
-        req.userInfo = userInfo;
         next();
 
     } catch (error) {

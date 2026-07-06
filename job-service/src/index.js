@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const mongoose = require('mongoose');
 const { connectQueue } = require("./rabbitmq");
 const routes = require('./routes');
@@ -27,6 +28,7 @@ app.use(cors({
 
 app.use(express.json());           // parse JSON
 app.use(express.urlencoded({ extended: true })); // parse form data
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
 // Ready for initialize rabbitmQ asyncronously
