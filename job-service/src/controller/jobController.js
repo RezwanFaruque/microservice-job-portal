@@ -6,8 +6,21 @@ const JobCategory = require('../models/JobCategory');
 const Job = require('../models/Job');
 const AppliedJob = require('../models/AppliedJobs');
 const UserCache = require('../models/UserCache');
+const mongoose = require('mongoose');
 
 const employerSelect = 'userId userName email userType company';
+
+function getQueryValues(value) {
+    const values = Array.isArray(value) ? value : [value];
+    return values
+        .flatMap((item) => typeof item === 'string' ? item.split(',') : [])
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
+function escapeRegex(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 async function resolvePostedBy(postedByRef) {
     if (!postedByRef) return null;
@@ -20,7 +33,7 @@ async function resolvePostedBy(postedByRef) {
 
 const createJob = async (req, res) => {
 
-    const { title , description , vacancy, category , location , salaryRange , jobType , postedBy , applicationDeadline} = req.body;
+    const { title , description , vacancy, category , location , salaryRange , jobType , seniorityLevel, postedBy , applicationDeadline} = req.body;
     // create eventdrivent architecture here 
     try {
         const userCache = await UserCache.findOne({ userId: postedBy });
@@ -30,6 +43,7 @@ const createJob = async (req, res) => {
 
         await Job.create({
             title, description, vacancy, category, location, salaryRange, jobType,
+            seniorityLevel,
             postedBy: userCache._id,
             applicationDeadline,
         });
@@ -48,31 +62,81 @@ const createJob = async (req, res) => {
 // IN FUTURE SHOULD IMPLEMENT ELASTIC SEARCH FOR TITLE SEARCH
 const getJob = async(req, res) => {
     try{
-        const {category , title ,location , salaryRange , jobType , page = 1 , limit = 10} = req.query;
-        let datafilter = {};
+        const {
+            category,
+            title,
+            keyword,
+            search,
+            location,
+            salaryRange,
+            jobType,
+            employmentType,
+            seniorityLevel,
+            page = 1,
+            limit = 10,
+        } = req.query;
+        const pageNumber = Number(page);
+        const pageLimit = Number(limit);
 
-        if(category){
-            datafilter.category = category;
+        if (!Number.isInteger(pageNumber) || pageNumber < 1
+            || !Number.isInteger(pageLimit) || pageLimit < 1 || pageLimit > 100) {
+            return res.status(400).json({
+                success: false,
+                message: 'Page must be a positive integer and limit must be between 1 and 100',
+            });
         }
-        if(location){
-            datafilter.location = location;
 
+        const datafilter = {};
+        const keywords = getQueryValues(keyword || search || title);
+        if (keywords.length) {
+            const keywordPattern = new RegExp(escapeRegex(keywords.join(' ')), 'i');
+            datafilter.$or = [
+                { title: keywordPattern },
+                { description: keywordPattern },
+            ];
         }
 
-        if(salaryRange){
-            datafilter.salaryRange = salaryRange;
+        const categoryValues = getQueryValues(category);
+        if (categoryValues.length) {
+            const categoryIds = categoryValues
+                .filter((value) => mongoose.Types.ObjectId.isValid(value))
+                .map((value) => new mongoose.Types.ObjectId(value));
+            const categoryNames = categoryValues.filter(
+                (value) => !mongoose.Types.ObjectId.isValid(value)
+            );
+
+            if (categoryNames.length) {
+                const matchingCategories = await JobCategory.find({
+                    name: { $in: categoryNames },
+                }).select('_id').lean();
+                categoryIds.push(...matchingCategories.map((item) => item._id));
+            }
+
+            datafilter.category = { $in: categoryIds };
         }
 
-        if(jobType){
-            datafilter.jobType = jobType;
+        const locations = getQueryValues(location);
+        if (locations.length) {
+            datafilter.location = {
+                $in: locations.map((value) => new RegExp(escapeRegex(value), 'i')),
+            };
         }
 
-        if(title){
-            datafilter.title = {$regex: title , $options: "i"};
+        const salaryRanges = getQueryValues(salaryRange);
+        if (salaryRanges.length) {
+            datafilter.salaryRange = { $in: salaryRanges };
         }
 
-        const pageNumber = parseInt(page);
-        const pageLimit = parseInt(limit);
+        const jobTypes = getQueryValues(jobType || employmentType);
+        if (jobTypes.length) {
+            datafilter.jobType = { $in: jobTypes };
+        }
+
+        const seniorityLevels = getQueryValues(seniorityLevel);
+        if (seniorityLevels.length) {
+            datafilter.seniorityLevel = { $in: seniorityLevels };
+        }
+
         const skip = (pageNumber - 1) * pageLimit;
 
         const [ jobs , total ] = await Promise.all([
@@ -94,18 +158,12 @@ const getJob = async(req, res) => {
             total : total,
             jobs : jobsWithEmployer,
             page : pageNumber,
-            limit : pageLimit
+            limit : pageLimit,
+            totalPages: Math.ceil(total / pageLimit),
         }
 
-        if(total <= 0){
-            return res.status(404).send({
-                message: 'Jobs Not found!',
-                data : data
-            });
-        }
-        
         return res.status(200).send({
-            message: 'Jobs successfuly found!',
+            message: total > 0 ? 'Jobs successfully found!' : 'No jobs found',
             data : data
         });
         

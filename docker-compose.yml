@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     ports:
       - "5000:5000"
+    volumes:
+      - user_uploads:/user-service/uploads
     env_file:
       - ./user-service/.env
     depends_on:
@@ -49,3 +51,4 @@ services:
 
 volumes:
   mongo_data:
+  user_uploads:
