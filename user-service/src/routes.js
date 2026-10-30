@@ -4,6 +4,7 @@ const {
     registerUser,
     userLogin,
     userDetails,
+    updateProfile,
     uploadResume,
     getResume,
     downloadResume,
@@ -16,11 +17,16 @@ const {
     handleResumeUploadError,
     requireJobSeeker,
 } = require('./middleware/resumeUpload');
+const {
+    uploadProfilePicture,
+    handleProfilePictureUploadError,
+} = require('./middleware/profilePictureUpload');
 
 
 router.post('/register', registerUser);
 router.post('/login', userLogin);
 router.get('/user-details',authMiddleware,userDetails);
+router.patch('/profile', authMiddleware, uploadProfilePicture, handleProfilePictureUploadError, updateProfile);
 router.post('/resume', authMiddleware, requireJobSeeker, resumeUpload, handleResumeUploadError, uploadResume);
 router.get('/resume', authMiddleware, requireJobSeeker, getResume);
 router.get('/resume/file', authMiddleware, requireJobSeeker, downloadResume);

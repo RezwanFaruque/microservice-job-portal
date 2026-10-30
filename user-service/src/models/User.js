@@ -8,6 +8,10 @@ const userSchema = new mongoose.Schema({
     password : { type: String, required: true},
     createdAt : { type: Date, default: Date.now },
     userType : {type: String , enum: ['job_seeker', 'employer'], required: true},
+    jobCategory: [{ type: String, trim: true }],
+    skills: [{ type: String, trim: true }],
+    about: { type: String, trim: true, maxlength: 500 },
+    profilePicture: { type: String },
 
     // Additional fields can be added as needed like company information
     company : {
@@ -34,4 +38,3 @@ userSchema.pre('save', function(next){
 
 
 module.exports = mongoose.model('User', userSchema);
-

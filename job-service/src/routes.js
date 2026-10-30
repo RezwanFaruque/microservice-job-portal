@@ -4,6 +4,7 @@ const { upload , handleMulterError , saveToDisk } = require('./middleware/fileUp
 const authMiddleware = require('./middleware/auth');
 const checkDuplicateApplication = require('./controller/validation/checkDupplicateApply');
 const { createJob, getJob, getJobDetails ,createCategory , getAllCategory,getJobFilterInfo , applidedJobs, getMyAppliedJobs} = require('./controller/jobController');
+const { saveJob, getSavedJobs, removeSavedJob } = require('./controller/savedJobController');
 
 
 router.post('/create', createJob);
@@ -14,6 +15,9 @@ router.get('/job-category/getall',getAllCategory);
 router.get('/get-job-filter-info',getJobFilterInfo);
 router.post('/apply', authMiddleware, upload.single('resume'), handleMulterError, checkDuplicateApplication, saveToDisk, applidedJobs);
 router.get('/my-applications', authMiddleware, getMyAppliedJobs);
+router.post('/saved-jobs/:jobId', authMiddleware, saveJob);
+router.get('/saved-jobs', authMiddleware, getSavedJobs);
+router.delete('/saved-jobs/:jobId', authMiddleware, removeSavedJob);
 
 
 

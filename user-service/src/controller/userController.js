@@ -8,6 +8,7 @@ const { publishMessage, queueName } = require("../rabbitmq");
 const Resume = require("../models/Resume");
 
 const resumeUploadDirectory = path.resolve(__dirname, "../../uploads/resumes");
+const profilePictureDirectory = path.resolve(__dirname, "../../uploads/profile-pictures");
 
 const isValidResumeSections = (sections) => Array.isArray(sections)
     && !sections.some((section) => (
@@ -110,6 +111,193 @@ const userDetails = async (req, res) =>{
     }
 
 }
+
+const updateProfile = async (req, res) => {
+    const body = req.body || {};
+    const allowedFields = new Set(['userName', 'email', 'jobCategory', 'skills', 'about', 'company']);
+    const suppliedFields = Object.keys(body || {});
+    const unsupportedFields = suppliedFields.filter((field) => !allowedFields.has(field));
+
+    if (unsupportedFields.length) {
+        return res.status(400).json({
+            message: `Unsupported profile fields: ${unsupportedFields.join(', ')}`,
+        });
+    }
+
+    if (!suppliedFields.length && !req.file) {
+        return res.status(400).json({ message: 'Provide at least one profile field to update' });
+    }
+
+    const updates = {};
+    for (const field of ['userName', 'email', 'about']) {
+        if (!Object.prototype.hasOwnProperty.call(body, field)) continue;
+        if (typeof body[field] !== 'string') {
+            return res.status(400).json({ message: `${field} must be a string` });
+        }
+
+        const value = body[field].trim();
+        const maxLength = field === 'about' ? 500 : 100;
+        if (!value || value.length > maxLength) {
+            return res.status(400).json({
+                message: `${field} must be between 1 and ${maxLength} characters`,
+            });
+        }
+        updates[field] = field === 'email' ? value.toLowerCase() : value;
+    }
+
+    if (updates.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.email)) {
+        return res.status(400).json({ message: 'Provide a valid email address' });
+    }
+
+    for (const field of ['jobCategory', 'skills']) {
+        if (!Object.prototype.hasOwnProperty.call(body, field)) continue;
+        let values = body[field];
+        if (typeof values === 'string') {
+            try {
+                values = JSON.parse(values);
+            } catch (error) {
+                return res.status(400).json({ message: `${field} must be a JSON array` });
+            }
+        }
+        if (!Array.isArray(values) || values.length > 50
+            || values.some((value) => typeof value !== 'string'
+                || !value.trim() || value.trim().length > 100)) {
+            return res.status(400).json({
+                message: `${field} must be an array of up to 50 non-empty strings, each 100 characters or fewer`,
+            });
+        }
+        updates[field] = [...new Set(values.map((value) => value.trim()))];
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, 'company')) {
+        let company = body.company;
+        if (typeof company === 'string') {
+            try {
+                company = JSON.parse(company);
+            } catch (error) {
+                return res.status(400).json({ message: 'company must be a JSON object' });
+            }
+        }
+        const companyFields = new Set(['name', 'location', 'website', 'description', 'industry']);
+        if (!company || typeof company !== 'object' || Array.isArray(company)) {
+            return res.status(400).json({ message: 'company must be an object' });
+        }
+
+        for (const [field, value] of Object.entries(company)) {
+            if (!companyFields.has(field)) {
+                return res.status(400).json({ message: `Unsupported company field: ${field}` });
+            }
+            if (typeof value !== 'string' || value.length > 5000) {
+                return res.status(400).json({
+                    message: `company.${field} must be a string of 5000 characters or fewer`,
+                });
+            }
+            updates[`company.${field}`] = value.trim();
+        }
+
+        if (!Object.keys(company).length) {
+            return res.status(400).json({ message: 'Provide at least one company field to update' });
+        }
+    }
+
+    if (req.file) {
+        const { buffer, mimetype } = req.file;
+        const isJpeg = mimetype === 'image/jpeg'
+            && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+        const isPng = mimetype === 'image/png'
+            && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+        const isWebp = mimetype === 'image/webp'
+            && buffer.toString('ascii', 0, 4) === 'RIFF'
+            && buffer.toString('ascii', 8, 12) === 'WEBP';
+        if (!isJpeg && !isPng && !isWebp) {
+            return res.status(400).json({ message: 'Profile picture contents are not a valid JPG, PNG, or WebP image' });
+        }
+    }
+
+    let newProfilePictureFile;
+    try {
+        let previousProfilePicture;
+        if (req.file) {
+            const currentUser = await user.findById(req.user.userId).select('profilePicture');
+            if (!currentUser) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            const extension = path.extname(req.file.originalname).toLowerCase();
+            const storageName = `${randomUUID()}${extension}`;
+            newProfilePictureFile = path.join(profilePictureDirectory, storageName);
+            await fs.mkdir(profilePictureDirectory, { recursive: true });
+            await fs.writeFile(newProfilePictureFile, req.file.buffer, { flag: 'wx' });
+            updates.profilePicture = `/uploads/profile-pictures/${storageName}`;
+            previousProfilePicture = currentUser.profilePicture;
+        }
+
+        const updatedUser = await user.findByIdAndUpdate(
+            req.user.userId,
+            { $set: updates },
+            { new: true, runValidators: true }
+        ).select('-password -__v');
+
+        if (!updatedUser) {
+            if (newProfilePictureFile) {
+                await fs.unlink(newProfilePictureFile);
+                newProfilePictureFile = null;
+            }
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        newProfilePictureFile = null;
+        await publishMessage(queueName, {
+            event: 'USER_UPDATED',
+            data: {
+                _id: updatedUser._id,
+                userName: updatedUser.userName,
+                email: updatedUser.email,
+                userType: updatedUser.userType,
+                company: updatedUser.company,
+                createdAt: updatedUser.createdAt,
+            },
+        });
+
+        if (previousProfilePicture?.startsWith('/uploads/profile-pictures/')) {
+            const previousStorageName = previousProfilePicture.slice('/uploads/profile-pictures/'.length);
+            if (previousStorageName && path.basename(previousStorageName) === previousStorageName) {
+                try {
+                    await fs.unlink(path.join(profilePictureDirectory, previousStorageName));
+                } catch (error) {
+                    if (error.code !== 'ENOENT') {
+                        console.error('Failed to remove replaced profile picture:', error);
+                    }
+                }
+            }
+        }
+
+        return res.status(200).json({
+            message: 'Profile updated successfully',
+            user: updatedUser,
+        });
+    } catch (error) {
+        if (newProfilePictureFile) {
+            try {
+                await fs.unlink(newProfilePictureFile);
+            } catch (cleanupError) {
+                if (cleanupError.code !== 'ENOENT') {
+                    console.error('Failed to clean up incomplete profile picture upload:', cleanupError);
+                }
+            }
+        }
+
+        if (error.code === 11000) {
+            return res.status(409).json({ message: 'Email is already in use' });
+        }
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ message: error.message });
+        }
+
+        console.error('Error updating user profile:', error);
+        return res.status(500).json({ message: 'Failed to update profile' });
+    }
+};
 
 const uploadResume = async (req, res) => {
     if (!req.file) {
@@ -299,6 +487,7 @@ module.exports = {
     registerUser,
     userLogin,
     userDetails,
+    updateProfile,
     uploadResume,
     getResume,
     downloadResume,

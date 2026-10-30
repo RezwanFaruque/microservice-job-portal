@@ -19,6 +19,7 @@ async function startUserConsumer (){
 
                     switch (event) {
                         case 'USER_REGISTERED':
+                        case 'USER_UPDATED':
                             await userCacheSync(data);
                             break;
                     
@@ -61,7 +62,6 @@ async function userCacheSync(data) {
 }
 
 module.exports = { startUserConsumer };
-
 
 
 
