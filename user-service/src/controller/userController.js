@@ -90,6 +90,38 @@ const userLogin = async (req, res) => {
     }
 }
 
+const changePassword = async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    if (typeof currentPassword !== 'string' || !currentPassword
+        || typeof newPassword !== 'string' || !newPassword) {
+        return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+
+    try {
+        const currentUser = await user.findById(req.user.userId);
+        if (!currentUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const isCurrentPasswordValid = await bcrypt.compare(currentPassword, currentUser.password);
+        if (!isCurrentPasswordValid) {
+            return res.status(400).json({ message: 'Current password is incorrect' });
+        }
+
+        if (await bcrypt.compare(newPassword, currentUser.password)) {
+            return res.status(400).json({ message: 'New password must be different from the current password' });
+        }
+
+        currentUser.password = await bcrypt.hash(newPassword, 10);
+        await currentUser.save();
+
+        return res.status(200).json({ message: 'Password changed successfully' });
+    } catch (error) {
+        console.error('Error changing password:', error);
+        return res.status(500).json({ message: 'Failed to change password' });
+    }
+};
+
 
 const userDetails = async (req, res) =>{
 
@@ -486,6 +518,7 @@ const deleteResume = async (req, res) => {
 module.exports = {
     registerUser,
     userLogin,
+    changePassword,
     userDetails,
     updateProfile,
     uploadResume,

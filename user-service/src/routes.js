@@ -3,6 +3,7 @@ const router = express.Router();
 const {
     registerUser,
     userLogin,
+    changePassword,
     userDetails,
     updateProfile,
     uploadResume,
@@ -25,6 +26,7 @@ const {
 
 router.post('/register', registerUser);
 router.post('/login', userLogin);
+router.patch('/change-password', authMiddleware, changePassword);
 router.get('/user-details',authMiddleware,userDetails);
 router.patch('/profile', authMiddleware, uploadProfilePicture, handleProfilePictureUploadError, updateProfile);
 router.post('/resume', authMiddleware, requireJobSeeker, resumeUpload, handleResumeUploadError, uploadResume);
